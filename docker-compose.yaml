@@ -1,0 +1,66 @@
+# Copyright VMware, Inc.
+# SPDX-License-Identifier: APACHE-2.0
+
+version: '3.8'
+
+services:
+  spark-master:
+    container_name: spark-master
+    hostname: spark-master
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+    volumes:
+      - ./.env:/opt/bitnami/spark/.env
+      - ./jobs:/opt/bitnami/spark/jobs
+      - ./datasets:/opt/bitnami/spark/datasets
+      - ./requirements.txt:/requirements.txt
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_USER=spark
+    ports:
+      - '8080:8080'
+    networks:
+      - e2e-pipeline
+
+  spark-worker: &worker
+    container_name: spark-worker
+    hostname: spark-worker
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+    volumes:
+      - ./.env:/opt/bitnami/spark/.env
+      - ./jobs:/opt/bitnami/spark/jobs
+      - ./datasets:/opt/bitnami/spark/datasets
+      - ./requirements.txt:/requirements.txt
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=2
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_USER=spark
+    networks:
+      - e2e-pipeline
+
+#  spark-worker-2:
+#    <<: *worker
+#
+#  spark-worker-3:
+#    <<: *worker
+#
+#  spark-worker-4:
+#    <<: *worker
+
+networks:
+  e2e-pipeline:
